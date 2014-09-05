@@ -30,7 +30,7 @@ class SparkClientSuite extends FunSuite with Matchers {
   // Timeouts are bad... mmmkay.
   private val timeout = Duration(10, SECONDS)
 
-  private def runTest(conf: SparkConf, fn: SparkClient => Unit) = {
+  private def runTest(conf: Map[String, String], fn: SparkClient => Unit) = {
     SparkClient.initialize(conf)
     var client: SparkClient = null
     try {
@@ -46,10 +46,10 @@ class SparkClientSuite extends FunSuite with Matchers {
 
   private def localTest(name: String)(fn: SparkClient => Unit) =
     test(name) {
-      val conf = new SparkConf()
-        .set(ClientUtils.CONF_KEY_IN_PROCESS, "true")
-        .setMaster("local")
-        .setAppName("SparkClientSuite Local App")
+      val conf = Map(
+        (ClientUtils.CONF_KEY_IN_PROCESS -> "true"),
+        ("spark.master" -> "local"),
+        ("spark.app.name" -> "SparkClientSuite Local App"))
       runTest(conf, fn)
     }
 
@@ -61,12 +61,12 @@ class SparkClientSuite extends FunSuite with Matchers {
       // actual jar file for the client.
       val classpath = sys.props("java.class.path")
 
-      val conf = new SparkConf()
-        .setMaster("local")
-        .setAppName("SparkClientSuite Remote App")
-        .setSparkHome(sparkHome)
-        .set("spark.driver.extraClassPath", classpath)
-        .set("spark.executor.extraClassPath", classpath)
+      val conf = Map(
+        ("spark.master" -> "local"),
+        ("spark.app.name" -> "SparkClientSuite Remote App"),
+        ("spark.home" -> sparkHome),
+        ("spark.driver.extraClassPath" -> classpath),
+        ("spark.executor.extraClassPath" -> classpath))
       runTest(conf, fn)
     }
 

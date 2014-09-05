@@ -18,9 +18,11 @@
 package org.apache.spark_remote.api.java
 
 import java.net.URL
+import java.util.{Map => JMap}
 import java.util.concurrent.Future
 
-import org.apache.spark.SparkConf
+import scala.collection.JavaConverters._
+
 import org.apache.spark_remote._
 
 /**
@@ -62,7 +64,7 @@ class JavaSparkClient private (private val client: SparkClient) {
 object JavaSparkClient {
 
   /** Initializes the SparkClient library. Must be called before creating client instances. */
-  def initialize(conf: SparkConf): Unit = SparkClient.initialize(conf)
+  def initialize(conf: JMap[String, String]): Unit = SparkClient.initialize(conf.asScala.toMap)
 
   /** Stops the SparkClient library. */
   def uninitialize(): Unit = SparkClient.stop()
@@ -72,7 +74,7 @@ object JavaSparkClient {
    *
    * @param conf Configuration for the remote Spark application.
    */
-  def createClient(conf: SparkConf): JavaSparkClient =
-      new JavaSparkClient(SparkClient.createClient(conf))
+  def createClient(conf: JMap[String, String]): JavaSparkClient =
+      new JavaSparkClient(SparkClient.createClient(conf.asScala.toMap))
 
 }

@@ -21,7 +21,6 @@ import java.net.URL
 
 import scala.concurrent.Future
 
-import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark_remote.impl._
 
 /**
@@ -56,8 +55,12 @@ trait SparkClient {
 
 object SparkClient {
 
-  /** Initializes the SparkClient library. Must be called before creating client instances. */
-  def initialize(conf: SparkConf): Unit = SparkClientImpl.initialize(conf)
+  /**
+   * Initializes the SparkClient library. Must be called before creating client instances.
+   *
+   * @param conf Map containing configuration parameters for the client.
+   */
+  def initialize(conf: Map[String, String]): Unit = SparkClientImpl.initialize(conf)
 
   /** Stops the SparkClient library. */
   def stop(): Unit = SparkClientImpl.stop()
@@ -67,6 +70,6 @@ object SparkClient {
    *
    * @param conf Configuration for the remote Spark application.
    */
-  def createClient(conf: SparkConf): SparkClient = new SparkClientImpl(conf)
+  def createClient(conf: Map[String, String]): SparkClient = new SparkClientImpl(conf)
 
 }

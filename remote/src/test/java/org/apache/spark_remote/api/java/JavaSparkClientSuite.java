@@ -18,6 +18,8 @@
 package org.apache.spark_remote.api.java;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -26,7 +28,6 @@ import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
-import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark_remote.impl.ClientUtils;
 
@@ -35,12 +36,12 @@ public class JavaSparkClientSuite {
   // Timeouts are bad... mmmkay.
   private static final long TIMEOUT = 10;
 
-  private SparkConf createConf(boolean local) {
+  private Map<String, String> createConf(boolean local) {
+    Map<String, String> conf = new HashMap<String, String>();
     if (local) {
-      return new SparkConf()
-        .set(ClientUtils.CONF_KEY_IN_PROCESS(), "true")
-        .setMaster("local")
-        .setAppName("JavaSparkClientSuite Local App");
+      conf.put(ClientUtils.CONF_KEY_IN_PROCESS(), "true");
+      conf.put("spark.master", "local");
+      conf.put("spark.app.name", "JavaSparkClientSuite Local App");
     } else {
       String sparkHome = System.getProperty("spark.test.home");
       if (sparkHome == null) {
@@ -49,13 +50,13 @@ public class JavaSparkClientSuite {
 
       String classpath = System.getProperty("java.class.path");
 
-      return new SparkConf()
-        .setMaster("local")
-        .setAppName("SparkClientSuite Remote App")
-        .setSparkHome(sparkHome)
-        .set("spark.driver.extraClassPath", classpath)
-        .set("spark.executor.extraClassPath", classpath);
+      conf.put("spark.master", "local");
+      conf.put("spark.app.name", "SparkClientSuite Remote App");
+      conf.put("spark.home", sparkHome);
+      conf.put("spark.driver.extraClassPath", classpath);
+      conf.put("spark.executor.extraClassPath", classpath);
     }
+    return conf;
   }
 
   @Test
@@ -107,7 +108,7 @@ public class JavaSparkClientSuite {
   }
 
   private void runTest(boolean local, TestFunction test) throws Exception {
-    SparkConf conf = createConf(local);
+    Map<String, String> conf = createConf(local);
     JavaSparkClient.initialize(conf);
     JavaSparkClient client = null;
     try {

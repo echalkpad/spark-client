@@ -17,14 +17,12 @@
 
 package org.apache.spark_remote.impl
 
-import java.net.InetSocketAddress
 import java.util.concurrent.{ConcurrentHashMap, Executors, ExecutorService, Future}
 
 import scala.collection.JavaConversions._
 import scala.util.Try
 
 import akka.actor.{Actor, ActorRef, ActorSelection, ActorSystem, Props}
-import akka.io.{IO, Tcp}
 import akka.remote.DisassociatedEvent
 
 import org.apache.spark.{Logging, SparkConf, SparkContext}
@@ -52,7 +50,7 @@ private class RemoteDriver extends Logging {
     executor = Executors.newCachedThreadPool()
 
     logInfo(s"Connecting to: $remote")
-    val (actorSystem, akkaUrl) = ClientUtils.createActorSystem(conf)
+    val (actorSystem, akkaUrl) = ClientUtils.createActorSystem(Map(conf.getAll: _*))
     system = actorSystem
     actor = actorSystem.actorOf(Props(classOf[ServerActor], this), "RemoteDriver")
     client = actorSystem.actorSelection(remote)

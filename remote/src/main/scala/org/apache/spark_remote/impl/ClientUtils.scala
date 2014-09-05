@@ -25,7 +25,7 @@ import scala.collection.JavaConversions._
 import akka.actor.{ActorSystem, ExtendedActorSystem}
 import com.typesafe.config.ConfigFactory
 
-import org.apache.spark.{Logging, SparkConf, SparkContext}
+import org.apache.spark.Logging
 import org.apache.spark_remote._
 
 private[spark_remote] object ClientUtils extends Logging {
@@ -41,51 +41,59 @@ private[spark_remote] object ClientUtils extends Logging {
    * @param conf Configuration.
    * @return 2-tuple (actor system, akka root url)
    */
-  def createActorSystem(conf: SparkConf): (ActorSystem, String) = {
-    val akkaThreads   = conf.getInt("spark.akka.threads", 4)
-    val akkaBatchSize = conf.getInt("spark.akka.batchSize", 15)
-    val akkaTimeout = conf.getInt("spark.akka.timeout", 100)
-    val akkaFrameSize = conf.getInt("spark.akka.frameSize", 10) * 1024 * 1024
-    val akkaLogLifecycleEvents = conf.getBoolean("spark.akka.logLifecycleEvents", false)
-    val lifecycleEvents = if (akkaLogLifecycleEvents) "on" else "off"
-    val logAkkaConfig = if (conf.getBoolean("spark.akka.logAkkaConfig", false)) "on" else "off"
+  def createActorSystem(conf: Map[String, String]): (ActorSystem, String) = {
+    def getBoolean(key: String) =
+      conf.get("spark.akka.logAkkaConfig").getOrElse("false").toBoolean
 
-    val akkaHeartBeatPauses = conf.getInt("spark.akka.heartbeat.pauses", 600)
-    val akkaFailureDetector =
-      conf.getDouble("spark.akka.failure-detector.threshold", 300.0)
-    val akkaHeartBeatInterval = conf.getInt("spark.akka.heartbeat.interval", 1000)
+    def getInt(key: String, default: Int) =
+      conf.get(key).map(_.toInt).getOrElse(default)
 
-    val secret = conf.getOption(CONF_KEY_SECRET).getOrElse(
+    def getDouble(key: String, default: Double) =
+      conf.get(key).map(_.toDouble).getOrElse(default)
+
+    val akkaThreads = getInt("spark.akka.threads", 4)
+    val akkaBatchSize = getInt("spark.akka.batchSize", 15)
+    val akkaTimeout = getInt("spark.akka.timeout", 100)
+    val akkaFrameSize = getInt("spark.akka.frameSize", 10) * 1024 * 1024
+    val lifecycleEvents = if (getBoolean("spark.akka.logLifecycleEvents")) "on" else "off"
+    val logAkkaConfig = if (getBoolean("spark.akka.logAkkaConfig")) "on" else "off"
+
+    val akkaHeartBeatPauses = getInt("spark.akka.heartbeat.pauses", 600)
+    val akkaFailureDetector = getDouble("spark.akka.failure-detector.threshold", 300.0)
+    val akkaHeartBeatInterval = getInt("spark.akka.heartbeat.interval", 1000)
+
+    val secret = conf.get(CONF_KEY_SECRET).getOrElse(
       throw new IllegalArgumentException(s"$CONF_KEY_SECRET not set."))
 
     val host = findLocalIpAddress()
 
-    val akkaConf = ConfigFactory.parseMap(conf.getAkkaConf.toMap[String, String]).withFallback(
-      ConfigFactory.parseString(
-      s"""
-      |akka.daemonic = on
-      |akka.loggers = [""akka.event.slf4j.Slf4jLogger""]
-      |akka.stdout-loglevel = "ERROR"
-      |akka.jvm-exit-on-fatal-error = off
-      |akka.actor.default-dispatcher.throughput = $akkaBatchSize
-      |akka.log-config-on-start = $logAkkaConfig
-      |akka.log-dead-letters = $lifecycleEvents
-      |akka.log-dead-letters-during-shutdown = $lifecycleEvents
-      |akka.actor.provider = "akka.remote.RemoteActorRefProvider"
-      |akka.remote.log-remote-lifecycle-events = $lifecycleEvents
-      |akka.remote.netty.tcp.connection-timeout = $akkaTimeout s
-      |akka.remote.netty.tcp.execution-pool-size = $akkaThreads
-      |akka.remote.netty.tcp.hostname = "$host"
-      |akka.remote.netty.tcp.maximum-frame-size = ${akkaFrameSize}B
-      |akka.remote.netty.tcp.port = 0
-      |akka.remote.netty.tcp.tcp-nodelay = on
-      |akka.remote.netty.tcp.transport-class = "akka.remote.transport.netty.NettyTransport"
-      |akka.remote.require-cookie = "on"
-      |akka.remote.secure-cookie = "$secret"
-      |akka.remote.transport-failure-detector.acceptable-heartbeat-pause = $akkaHeartBeatPauses s
-      |akka.remote.transport-failure-detector.heartbeat-interval = $akkaHeartBeatInterval s
-      |akka.remote.transport-failure-detector.threshold = $akkaFailureDetector
-      """.stripMargin))
+    val akkaConf = ConfigFactory.parseMap(conf.filter { case (k, v) => k.startsWith("akka.") })
+      .withFallback(
+        ConfigFactory.parseString(
+        s"""
+        |akka.daemonic = on
+        |akka.loggers = [""akka.event.slf4j.Slf4jLogger""]
+        |akka.stdout-loglevel = "ERROR"
+        |akka.jvm-exit-on-fatal-error = off
+        |akka.actor.default-dispatcher.throughput = $akkaBatchSize
+        |akka.log-config-on-start = $logAkkaConfig
+        |akka.log-dead-letters = $lifecycleEvents
+        |akka.log-dead-letters-during-shutdown = $lifecycleEvents
+        |akka.actor.provider = "akka.remote.RemoteActorRefProvider"
+        |akka.remote.log-remote-lifecycle-events = $lifecycleEvents
+        |akka.remote.netty.tcp.connection-timeout = $akkaTimeout s
+        |akka.remote.netty.tcp.execution-pool-size = $akkaThreads
+        |akka.remote.netty.tcp.hostname = "$host"
+        |akka.remote.netty.tcp.maximum-frame-size = ${akkaFrameSize}B
+        |akka.remote.netty.tcp.port = 0
+        |akka.remote.netty.tcp.tcp-nodelay = on
+        |akka.remote.netty.tcp.transport-class = "akka.remote.transport.netty.NettyTransport"
+        |akka.remote.require-cookie = "on"
+        |akka.remote.secure-cookie = "$secret"
+        |akka.remote.transport-failure-detector.acceptable-heartbeat-pause = $akkaHeartBeatPauses s
+        |akka.remote.transport-failure-detector.heartbeat-interval = $akkaHeartBeatInterval s
+        |akka.remote.transport-failure-detector.threshold = $akkaFailureDetector
+        """.stripMargin))
 
     val name = randomName()
     val actorSystem = ActorSystem(name, akkaConf)

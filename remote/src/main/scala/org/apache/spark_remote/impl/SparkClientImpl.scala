@@ -19,7 +19,7 @@
 package org.apache.spark_remote.impl
 
 import java.io.{File, FileOutputStream, InputStream, IOException, OutputStream, OutputStreamWriter}
-import java.net.{InetAddress, InetSocketAddress, URL}
+import java.net.URL
 import java.util.Properties
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
@@ -28,14 +28,16 @@ import scala.concurrent.Future
 
 import akka.actor.{Actor, ActorRef, ActorSelection, ActorSystem, Props}
 
-import org.apache.spark.{Logging, SparkConf, SparkContext, SparkException}
+import org.apache.spark.{Logging, SparkContext, SparkException}
 import org.apache.spark_remote._
 import org.apache.spark_remote.impl.Protocol._
 
 /**
  * Defines the client interface for a remote Spark context.
  */
-private[spark_remote] class SparkClientImpl(conf: SparkConf) extends SparkClient with Logging {
+private[spark_remote] class SparkClientImpl(conf: Map[String, String]) extends SparkClient
+  with Logging {
+
   import SparkClientImpl._
 
   private val childIdGenerator = new AtomicInteger()
@@ -45,7 +47,7 @@ private[spark_remote] class SparkClientImpl(conf: SparkConf) extends SparkClient
 
   private var remoteRef: ActorSelection = _
   this.synchronized {
-    val connectTimeout = conf.getInt("spark.client.connectTimeout", 10) * 1000
+    val connectTimeout = conf.get("spark.client.connectTimeout").getOrElse("10").toInt * 1000
     val endTime = System.currentTimeMillis() + connectTimeout
     while (remoteRef == null) {
       wait(connectTimeout)
@@ -93,12 +95,12 @@ private[spark_remote] class SparkClientImpl(conf: SparkConf) extends SparkClient
             val args = Seq(
               "--remote", s"$akkaUrl/$name",
               "--secret", secret) ++
-              conf.getAll.flatMap { case (k, v) => Seq("--conf", k, v) }
+              conf.flatMap { case (k, v) => Seq("--conf", k, v) }
             RemoteDriver.main(args.toArray)
           }
         }
       } else {
-        val sparkHome = conf.getOption("spark.home").orElse(sys.env.get("SPARK_HOME")).getOrElse(
+        val sparkHome = conf.get("spark.home").orElse(sys.env.get("SPARK_HOME")).getOrElse(
           throw new IllegalStateException("Need to define spark.home or SPARK_HOME."))
         val sparkSubmit = new File(s"$sparkHome/bin/spark-submit")
 
@@ -111,7 +113,7 @@ private[spark_remote] class SparkClientImpl(conf: SparkConf) extends SparkClient
         }
 
         val allProps = new Properties()
-        conf.getAll.foreach { case (k, v) => allProps.put(k, v) }
+        conf.foreach { case (k, v) => allProps.put(k, v) }
         allProps.put(ClientUtils.CONF_KEY_SECRET, secret)
 
         val writer = new OutputStreamWriter(new FileOutputStream(properties), "UTF-8")
@@ -217,9 +219,9 @@ private[spark_remote] object SparkClientImpl extends Logging {
   private var akkaUrl: String = _
   private var secret: String = _
 
-  def initialize(conf: SparkConf): Unit = {
+  def initialize(conf: Map[String, String]): Unit = {
     this.secret = akka.util.Crypt.generateSecureCookie
-    val akkaConf = conf.clone().set(ClientUtils.CONF_KEY_SECRET, secret)
+    val akkaConf = conf + (ClientUtils.CONF_KEY_SECRET -> secret)
     val (system, url) = ClientUtils.createActorSystem(akkaConf)
     this.actorSystem = system
     this.akkaUrl = url
