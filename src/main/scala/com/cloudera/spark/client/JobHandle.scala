@@ -25,6 +25,12 @@ import scala.util.Try
  */
 trait JobHandle[T >: Serializable] extends Future[T] {
 
+  /**
+   * The client job ID. This is unrelated to any Spark jobs that might be triggered by the
+   * submitted job.
+   */
+  def clientJobId: String
+
   /** Requests a running job to be cancelled. */
   def cancel(): Unit
 

@@ -35,6 +35,8 @@ private[impl] class JobHandleImpl[T >: Serializable](client: SparkClientImpl, jo
   private var result: Try[T] = null
   private var monitor = new Object()
 
+  override def clientJobId = jobId
+
   override def isCompleted = result != null
 
   override def onComplete[U](f: (Try[T]) => U)(implicit executor: ExecutionContext): Unit = {
