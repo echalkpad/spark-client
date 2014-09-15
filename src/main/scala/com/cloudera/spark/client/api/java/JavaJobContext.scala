@@ -17,6 +17,7 @@
 
 package com.cloudera.spark.client.api.java
 
+import org.apache.spark.FutureAction
 import org.apache.spark.api.java.JavaSparkContext
 
 import com.cloudera.spark.client._
@@ -33,5 +34,13 @@ class JavaJobContext private[java] (private val jc: JobContext) {
 
   /** The shared SparkContext instance. */
   def sc: JavaSparkContext = jsc
+
+  /**
+   * Monitor a job. This allows job-related information (such as metrics) to be communicated
+   * back to the client.
+   *
+   * @return The job (unmodified).
+   */
+  def monitor[T](job: FutureAction[T]): FutureAction[T] = jc.monitor(job)
 
 }

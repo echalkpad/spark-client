@@ -58,6 +58,20 @@ class JavaJobHandle[T >: Serializable] private[java] (private val handle: JobHan
 
   override def isDone() = handle.isCompleted
 
+  /**
+   * The client job ID. This is unrelated to any Spark jobs that might be triggered by the
+   * submitted job.
+   */
+  def getClientJobId(): String = handle.clientJobId
+
+  /**
+   * A collection of metrics collected from the Spark jobs triggered by this job.
+   *
+   * To collect job metrics on the client, Spark jobs must be registered with JobContext::monitor()
+   * on the remote end.
+   */
+  def getMetrics(): MetricsCollection = handle.metrics
+
   private def get(timeout: Duration) = {
     // Should either complete or throw an exception.
     Await.ready(handle, timeout)
