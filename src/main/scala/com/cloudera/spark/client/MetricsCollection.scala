@@ -36,7 +36,7 @@ import scala.collection.mutable.ListBuffer
  */
 class MetricsCollection {
 
-  private val taskMetrics = new ListBuffer[(Int, Int, Int, Metrics)]()
+  private val taskMetrics = new ListBuffer[(Int, Int, Long, Metrics)]()
   private val lock = new ReentrantReadWriteLock()
 
   def getAllMetrics(): Metrics = read { () =>
@@ -65,7 +65,7 @@ class MetricsCollection {
     aggregate { case (jId, sId, _, _) => (jobId == jId && stageId == sId) }
   }
 
-  def getTaskIds(jobId: Int, stageId: Int): Set[Int] = read { () =>
+  def getTaskIds(jobId: Int, stageId: Int): Set[Long] = read { () =>
     taskMetrics.flatMap { case (jId, sId, tId, _) =>
       if (jobId == jId && stageId == sId) {
         Option(tId)
@@ -75,7 +75,7 @@ class MetricsCollection {
     }.toSet
   }
 
-  def getTaskMetrics(jobId: Int, stageId: Int, taskId: Int): Metrics = read { () =>
+  def getTaskMetrics(jobId: Int, stageId: Int, taskId: Long): Metrics = read { () =>
     taskMetrics
       .find { case (jId, sId, tId, _) =>
         (jobId == jId) && (stageId == sId) && (taskId == tId)
@@ -87,13 +87,13 @@ class MetricsCollection {
   private[client] def addMetrics(
       jobId: Int,
       stageId: Int,
-      taskId: Int,
+      taskId: Long,
       metrics: Metrics): Unit = write { () =>
     val item = (jobId, stageId, taskId, metrics)
     taskMetrics += item
   }
 
-  private def aggregate(filter: ((Int, Int, Int, Metrics)) => Boolean): Metrics = read { () =>
+  private def aggregate(filter: ((Int, Int, Long, Metrics)) => Boolean): Metrics = read { () =>
     // Task metrics.
     var executorDeserializeTime: Long = 0L
     var executorRunTime: Long = 0L

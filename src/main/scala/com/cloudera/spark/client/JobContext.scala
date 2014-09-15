@@ -17,7 +17,7 @@
 
 package com.cloudera.spark.client
 
-import org.apache.spark.SparkContext
+import org.apache.spark.{FutureAction, SparkContext}
 
 /**
  * Holds runtime information about the job execution context.
@@ -29,5 +29,13 @@ trait JobContext {
 
   /** The shared SparkContext instance. */
   def sc: SparkContext
+
+  /**
+   * Monitor a job. This allows job-related information (such as metrics) to be communicated
+   * back to the client.
+   *
+   * @return The job (unmodified).
+   */
+  def monitor[T](job: FutureAction[T]): FutureAction[T]
 
 }

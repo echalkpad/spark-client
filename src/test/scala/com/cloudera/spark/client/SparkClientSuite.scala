@@ -22,6 +22,7 @@ import scala.concurrent.duration._
 
 import org.scalatest.{FunSuite, Matchers}
 import org.apache.spark.SparkConf
+import org.apache.spark.SparkContext._
 
 import com.cloudera.spark.client.impl.ClientUtils
 
@@ -76,17 +77,35 @@ class SparkClientSuite extends FunSuite with Matchers {
   }
 
   localTest("basic Spark job") { case client =>
-    val future = client.submit { jc =>
-      val rdd = jc.sc.parallelize(1 to 10)
-      rdd.count()
-    }
-    val res = Await.result(future, timeout)
-    res should be (10)
+    runSimpleJob(client)
+  }
+
+  localTest("metrics collection") { case client =>
+    val future = runSimpleJob(client)
+    val metrics = future.metrics
+    metrics.getJobIds().size should be (1)
+    metrics.getAllMetrics().executorRunTime should be > 0L
+
+    val future2 = runSimpleJob(client)
+    val metrics2 = future2.metrics
+    metrics2.getJobIds().size should be (1)
+    metrics.getJobIds() should not be (metrics2.getJobIds())
+    metrics2.getAllMetrics().executorRunTime should be > 0L
   }
 
   remoteTest("basic remote job submission") { case client =>
     val res = Await.result(client.submit { (jc) => "hello" }, timeout)
     res should be ("hello")
+  }
+
+  private def runSimpleJob(client: SparkClient) = {
+    val future = client.submit { jc =>
+      val rdd = jc.sc.parallelize(1 to 10)
+      Await.result(jc.monitor(rdd.countAsync()), Duration.Inf)
+    }
+    val res = Await.result(future, timeout)
+    res should be (10)
+    future
   }
 
 }

@@ -18,14 +18,18 @@
 package com.cloudera.spark.client.impl
 
 import java.util.concurrent.{ConcurrentHashMap, Executors, ExecutorService, Future}
+import java.util.concurrent.atomic.AtomicInteger
 
+import scala.collection.mutable
 import scala.collection.JavaConversions._
 import scala.util.Try
 
 import akka.actor.{Actor, ActorRef, ActorSelection, ActorSystem, Props}
 import akka.remote.DisassociatedEvent
-import org.apache.spark.{Logging, SparkConf, SparkContext}
+import org.apache.spark.{FutureAction, Logging, SparkConf, SparkContext}
+import org.apache.spark.scheduler._
 
+import com.cloudera.spark.client.Metrics
 import com.cloudera.spark.client.impl.Protocol._
 
 /**
@@ -33,7 +37,7 @@ import com.cloudera.spark.client.impl.Protocol._
  */
 private class RemoteDriver extends Logging {
 
-  private val activeJobs = new ConcurrentHashMap[String, Future[_]]()
+  private val activeJobs = new ConcurrentHashMap[String, JobWrapper[_]]()
   private val shutdownLock = new Object()
   private var executor: ExecutorService = _
   private var jc: JobContextImpl = _
@@ -57,6 +61,7 @@ private class RemoteDriver extends Logging {
 
     try {
       val sc = new SparkContext(conf)
+      sc.addSparkListener(new ClientListener())
       jc = new JobContextImpl(sc)
     } catch {
       case e: Exception =>
@@ -80,7 +85,7 @@ private class RemoteDriver extends Logging {
     if (running) {
       logInfo("Shutting down remote driver.")
       running = false
-      activeJobs.values().foreach { _.cancel(true) }
+      activeJobs.values().foreach { _.future.cancel(true) }
       if (msg != null) {
         client ! msg
       }
@@ -123,8 +128,8 @@ private class RemoteDriver extends Logging {
 
     override def receive = {
       case CancelJob(jobId) =>
-        val job = activeJobs.remove(jobId)
-        if (job == null || !job.cancel(true)) {
+        val job = activeJobs.get(jobId)
+        if (job == null || !job.future.cancel(true)) {
           logInfo("Requested to cancel an already finished job.")
         }
 
@@ -138,20 +143,101 @@ private class RemoteDriver extends Logging {
 
       case req @ JobRequest(jobId, job) =>
         logInfo(s"Received job request $jobId")
-        activeJobs.put(jobId, executor.submit(new JobWrapper(req)))
+        val wrapper = new JobWrapper(req)
+        activeJobs.put(jobId, wrapper)
+        wrapper.submit()
     }
 
   }
 
   private class JobWrapper[T >: Serializable](req: JobRequest[T]) extends Runnable {
 
+    val jobs = mutable.ListBuffer[FutureAction[_]]()
+    val completed = new AtomicInteger()
+    var future: Future[_] = _
+
     override def run() = {
       try {
+        jc.setMonitorCb(monitorJob)
         val result = Try(req.job(jc))
+        completed.synchronized {
+          while (completed.get() != jobs.size) {
+            logDebug(s"Client job ${req.id} finished, ${completed.get()} of ${jobs.size} Spark " +
+              "jobs finished.")
+            completed.wait()
+          }
+        }
         client ! JobResult(req.id, result)
       } finally {
+        jc.setMonitorCb(null)
         activeJobs.remove(req.id)
       }
+    }
+
+    def submit() {
+      this.future = executor.submit(this)
+    }
+
+    def jobDone() = completed.synchronized {
+      completed.incrementAndGet()
+      completed.notifyAll()
+    }
+
+    private def monitorJob(job: FutureAction[_]) = {
+      jobs += job
+    }
+
+  }
+
+  private class ClientListener extends SparkListener {
+
+    private val stageToJobId = new mutable.HashMap[Int, Int]()
+
+    override def onJobStart(jobStart: SparkListenerJobStart) = {
+      // TODO: are stage IDs unique? Otherwise this won't work.
+      stageToJobId.synchronized {
+        jobStart.stageIds.foreach { i => stageToJobId += (i -> jobStart.jobId) }
+      }
+    }
+
+    override def onJobEnd(jobEnd: SparkListenerJobEnd) = {
+      stageToJobId.synchronized {
+        val stageIds = stageToJobId
+          .filter { case (k, v) => v == jobEnd.jobId }
+          .map { case (k, v) => k }
+        stageToJobId --= stageIds
+      }
+
+      getClientId(jobEnd.jobId).foreach { id => activeJobs.get(id).jobDone() }
+    }
+
+    override def onTaskEnd(taskEnd: SparkListenerTaskEnd) = {
+      if (taskEnd.reason == org.apache.spark.Success && !taskEnd.taskInfo.speculative) {
+        val metrics = new Metrics(taskEnd.taskMetrics)
+        val jobId = stageToJobId.synchronized {
+          stageToJobId(taskEnd.stageId)
+        }
+
+        // TODO: implement implicit AsyncRDDActions conversion instead of jc.monitor()?
+        // TODO: how to handle stage failures?
+
+        getClientId(jobId).foreach { id =>
+          client ! JobMetrics(id, jobId, taskEnd.stageId, taskEnd.taskInfo.taskId, metrics)
+        }
+      }
+    }
+
+    /**
+     * Returns the client job ID for the given Spark job ID.
+     *
+     * This will only work for jobs monitored via JobContext#monitor(). Other jobs won't be
+     * matched, and this method will return `None`.
+     *
+     * HACK NOTE: due to SPARK-3446 it's not currently possible to do this match. So, at the
+     * moment, this is a huge hack.
+     */
+    private def getClientId(jobId: Int): Option[String] = {
+      Option(Try(activeJobs.keySet().iterator().next()).getOrElse(null))
     }
 
   }

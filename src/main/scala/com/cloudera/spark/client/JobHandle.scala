@@ -31,9 +31,17 @@ trait JobHandle[T >: Serializable] extends Future[T] {
    */
   def clientJobId: String
 
+  /**
+   * A collection of metrics collected from the Spark jobs triggered by this job.
+   *
+   * To collect job metrics on the client, Spark jobs must be registered with JobContext::monitor()
+   * on the remote end.
+   */
+  def metrics: MetricsCollection
+
   /** Requests a running job to be cancelled. */
   def cancel(): Unit
 
-  // TODO: expose metrics, job status?
+  // TODO: expose job status?
 
 }

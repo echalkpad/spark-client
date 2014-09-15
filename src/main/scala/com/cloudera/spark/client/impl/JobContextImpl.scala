@@ -17,13 +17,22 @@
 
 package com.cloudera.spark.client.impl
 
-import org.apache.spark.SparkContext
+import org.apache.spark.{FutureAction, SparkContext}
 
 import com.cloudera.spark.client._
 
 class JobContextImpl(ctx: SparkContext) extends JobContext {
 
+  private val monitorCb = new ThreadLocal[FutureAction[_] => Unit]()
+
   override def sc: SparkContext = ctx
+
+  override def monitor[T](job: FutureAction[T]) = {
+    monitorCb.get()(job)
+    job
+  }
+
+  private[impl] def setMonitorCb(cb: FutureAction[_] => Unit) = monitorCb.set(cb)
 
   private[impl] def stop() = {
     sc.stop()

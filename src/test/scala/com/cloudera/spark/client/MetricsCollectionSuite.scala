@@ -38,6 +38,10 @@ class MetricsCollectionSuite extends FunSuite with Matchers {
       }
     }
 
+    collection.getJobIds() should be (Set(1, 2))
+    collection.getStageIds(1) should be (Set(1, 2))
+    collection.getTaskIds(1, 1) should be (Set(1, 2))
+
     val task112 = collection.getTaskMetrics(1, 1, 2)
     checkMetrics(task112, taskValue(1, 1, 2), taskValue(1, 1, 2))
 
@@ -73,7 +77,7 @@ class MetricsCollectionSuite extends FunSuite with Matchers {
     global2.shuffleWriteMetrics should not be (None)
   }
 
-  test("read method aggregation") {
+  test("input read method aggregation") {
     val collection = new MetricsCollection()
 
     val value = taskValue(1, 1, 1)

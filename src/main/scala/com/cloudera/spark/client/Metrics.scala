@@ -50,7 +50,7 @@ class Metrics private[client] (
     val diskBytesSpilled: Long,
     val inputMetrics: Option[InputMetrics],
     val shuffleReadMetrics: Option[ShuffleReadMetrics],
-    val shuffleWriteMetrics: Option[ShuffleWriteMetrics]) {
+    val shuffleWriteMetrics: Option[ShuffleWriteMetrics]) extends Serializable {
 
   private[client] def this(metrics: TaskMetrics) = {
     this(
@@ -83,7 +83,7 @@ object DataReadMethod extends Enumeration {
  */
 class InputMetrics private[client] (
     val readMethod: DataReadMethod.Value,
-    val bytesRead: Long) {
+    val bytesRead: Long) extends Serializable {
 
   private[client] def this(metrics: TaskMetrics) = {
     this(DataReadMethod.withName(metrics.inputMetrics.get.readMethod.toString),
@@ -109,7 +109,7 @@ class ShuffleReadMetrics private[client] (
     val remoteBlocksFetched: Int,
     val localBlocksFetched: Int,
     val fetchWaitTime: Long,
-    val remoteBytesRead: Long) {
+    val remoteBytesRead: Long) extends Serializable {
 
   private[client] def this(metrics: TaskMetrics) = {
     this(metrics.shuffleReadMetrics.get.shuffleFinishTime,
@@ -135,7 +135,7 @@ class ShuffleReadMetrics private[client] (
  */
 class ShuffleWriteMetrics private[client] (
     val shuffleBytesWritten: Long,
-    val shuffleWriteTime: Long) {
+    val shuffleWriteTime: Long) extends Serializable {
 
   private[client] def this(metrics: TaskMetrics) = {
     this(metrics.shuffleWriteMetrics.get.shuffleBytesWritten,

@@ -34,8 +34,11 @@ private[impl] class JobHandleImpl[T >: Serializable](client: SparkClientImpl, jo
 
   private var result: Try[T] = null
   private var monitor = new Object()
+  private var metricsCollection = new MetricsCollection()
 
   override def clientJobId = jobId
+
+  override def metrics = metricsCollection
 
   override def isCompleted = result != null
 

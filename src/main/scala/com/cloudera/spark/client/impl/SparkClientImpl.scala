@@ -182,6 +182,14 @@ private[client] class SparkClientImpl(conf: Map[String, String]) extends SparkCl
           SparkClientImpl.this.notifyAll()
         }
 
+      case JobMetrics(jobId, sparkJob, stage, task, metrics) =>
+        val handle = jobs.get(jobId)
+        if (handle != null) {
+          handle.metrics.addMetrics(sparkJob, stage, task, metrics)
+        } else {
+          logWarning(s"Received metrics for unknown job $jobId")
+        }
+
       case JobResult(jobId, result) =>
         val handle = jobs.remove(jobId)
         if (handle != null) {
