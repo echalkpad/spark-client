@@ -52,11 +52,31 @@ class JavaSparkClient private (private val client: SparkClient) {
   /**
    * Adds a jar file to the running remote context.
    *
+   * Note that the URL should be reachable by the Spark driver process. If running the driver
+   * in cluster mode, it may reside on a different host, meaning "file:" URLs have to exist
+   * on that node (and not on the client machine).
+   *
    * @param url The location of the jar file.
-   * @return A future that can be used to check when the add is complete.
+   * @return A future that can be used to monitor the operation.
    */
-  def addJar(url: URL): Future[Unit] = {
-    throw new Exception("NOT IMPLEMENTED")
+  def addJar(url: URL): Future[_] = {
+    val handle = client.addJar(url).asInstanceOf[JobHandle[Any]]
+    new JavaJobHandle(handle)
+  }
+
+  /**
+   * Adds a file to the running remote context.
+   *
+   * Note that the URL should be reachable by the Spark driver process. If running the driver
+   * in cluster mode, it may reside on a different host, meaning "file:" URLs have to exist
+   * on that node (and not on the client machine).
+   *
+   * @param url The location of the file.
+   * @return A future that can be used to monitor the operation.
+   */
+  def addFile(url: URL): Future[_] = {
+    val handle = client.addFile(url).asInstanceOf[JobHandle[Any]]
+    new JavaJobHandle(handle)
   }
 
 }

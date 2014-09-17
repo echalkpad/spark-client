@@ -161,7 +161,9 @@ private class RemoteDriver extends Logging {
         jc.setMonitorCb(monitorJob)
         val result = Try(req.job(jc))
         completed.synchronized {
-          while (completed.get() != jobs.size) {
+          // TODO: Due to SPARK-3446, we can't test for equality here, since we don't know which
+          // jobs for which we get SparkListenerJobEnd events are actually monitored.
+          while (completed.get() < jobs.size) {
             logDebug(s"Client job ${req.id} finished, ${completed.get()} of ${jobs.size} Spark " +
               "jobs finished.")
             completed.wait()

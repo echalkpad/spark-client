@@ -77,8 +77,14 @@ private[client] class SparkClientImpl(conf: Map[String, String]) extends SparkCl
     driverThread.join() // TODO: timeout?
   }
 
-  override def addJar(url: URL): Future[Unit] = {
-    throw new Exception("NOT IMPLEMENTED")
+  override def addJar(url: URL): Future[_] = {
+    val path = url.toString()
+    submit(jc => jc.sc.addJar(path))
+  }
+
+  override def addFile(url: URL): Future[_] = {
+    val path = url.toString()
+    submit(jc => jc.sc.addFile(path))
   }
 
   private[impl] def cancel(jobId: String) = {

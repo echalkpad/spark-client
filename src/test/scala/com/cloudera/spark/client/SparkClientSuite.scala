@@ -17,19 +17,33 @@
 
 package com.cloudera.spark.client
 
+import java.io.{File, FileInputStream, FileOutputStream}
+import java.net.URL
+import java.util.zip.ZipEntry
+import java.util.jar.JarOutputStream
+
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-import org.scalatest.{FunSuite, Matchers}
-import org.apache.spark.SparkConf
+import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
+import org.apache.spark.SparkFiles
 import org.apache.spark.SparkContext._
 
 import com.cloudera.spark.client.impl.ClientUtils
 
-class SparkClientSuite extends FunSuite with Matchers {
+class SparkClientSuite extends FunSuite with Matchers with BeforeAndAfterAll {
 
   // Timeouts are bad... mmmkay.
   private val timeout = Duration(10, SECONDS)
+
+  private val driverLogFile = "target/unit-tests-driver.log"
+
+  override def beforeAll() = {
+    // Clean up the driver log file if it exists.
+    new File(driverLogFile).delete()
+
+    super.beforeAll()
+  }
 
   private def runTest(conf: Map[String, String], fn: SparkClient => Unit) = {
     SparkClient.initialize(conf)
@@ -50,7 +64,8 @@ class SparkClientSuite extends FunSuite with Matchers {
       val conf = Map(
         (ClientUtils.CONF_KEY_IN_PROCESS -> "true"),
         ("spark.master" -> "local"),
-        ("spark.app.name" -> "SparkClientSuite Local App"))
+        ("spark.app.name" -> "SparkClientSuite Local App"),
+        ("spark.akka.logLifecycleEvents" -> "true"))
       runTest(conf, fn)
     }
 
@@ -63,6 +78,8 @@ class SparkClientSuite extends FunSuite with Matchers {
       val classpath = sys.props("java.class.path")
 
       val conf = Map(
+        ("spark.driver.extraJavaOptions" ->
+          s"-Dspark.test.log.file=$driverLogFile -Dspark.test.log.file.append=true"),
         ("spark.master" -> "local"),
         ("spark.app.name" -> "SparkClientSuite Remote App"),
         ("spark.home" -> sparkHome),
@@ -91,6 +108,80 @@ class SparkClientSuite extends FunSuite with Matchers {
     metrics2.getJobIds().size should be (1)
     metrics.getJobIds() should not be (metrics2.getJobIds())
     metrics2.getAllMetrics().executorRunTime should be > 0L
+  }
+
+  localTest("add jars and files") { case client =>
+    var jar: Option[File] = None
+    var file: Option[File]  = None
+
+    try {
+      // Test that adding a jar to the remote context makes it show up in the classpath.
+      jar = Some(File.createTempFile("test", ".jar"))
+
+      val jarFile = new JarOutputStream(new FileOutputStream(jar.get))
+      jarFile.putNextEntry(new ZipEntry("test.resource"))
+      jarFile.write("test resource".getBytes("UTF-8"))
+      jarFile.closeEntry()
+      jarFile.close()
+
+      Await.ready(client.addJar(new URL("file:" + jar.get.getAbsolutePath())), timeout)
+
+      val jarJob = client.submit { jc =>
+        // Need to run a Spark job to make sure the jar is added to the class loader. Monitoring
+        // SparkContext#addJar() doesn't mean much, we can only be sure jars have been distributed
+        // when we run a task after the jar has been added.
+        jc.sc.parallelize(Seq(1)).map { _ =>
+          val ccl = Thread.currentThread().getContextClassLoader()
+          val in = ccl.getResourceAsStream("test.resource")
+          val bytes = new Array[Byte](1024)
+
+          var count = 0
+          var read = in.read(bytes)
+          while (read != -1) {
+            count += read
+            read = in.read(bytes, count, bytes.length - count)
+          }
+          in.close()
+          new String(bytes, 0, count, "UTF-8")
+        }.collect()(0)
+      }
+      var result = Await.result(jarJob, timeout)
+      result should be ("test resource")
+
+      // Test that adding a file to the remote context makes it available to executors.
+      file = Some(File.createTempFile("test", ".file"))
+
+      val fileStream = new FileOutputStream(file.get)
+      fileStream.write("test file".getBytes("UTF-8"))
+      fileStream.close()
+
+      Await.ready(client.addJar(new URL("file:" + file.get.getAbsolutePath())), timeout)
+
+      val fileName = file.get.getName()
+      val fileJob = client.submit { jc =>
+        // The same applies to files added with "addFile". They're only guaranteed to be available
+        // to tasks started after the addFile() call completes.
+        jc.sc.parallelize(Seq(1)).map { _ =>
+          val in = new FileInputStream(SparkFiles.get(fileName))
+          val bytes = new Array[Byte](1024)
+
+          var count = 0
+          var read = in.read(bytes)
+          while (read != -1) {
+            count += read
+            read = in.read(bytes, count, bytes.length - count)
+          }
+          in.close()
+          new String(bytes, 0, count, "UTF-8")
+        }.collect()(0)
+      }
+
+      val fileResult = Await.result(fileJob, timeout)
+      fileResult should be ("test file")
+    } finally {
+      jar.foreach(_.delete())
+      file.foreach(_.delete())
+    }
   }
 
   remoteTest("basic remote job submission") { case client =>
