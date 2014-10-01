@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import scala.collection.mutable
 import scala.collection.JavaConversions._
-import scala.util.Try
+import scala.util._
 
 import akka.actor.{Actor, ActorRef, ActorSelection, ActorSystem, Props}
 import akka.remote.DisassociatedEvent
@@ -170,6 +170,13 @@ private class RemoteDriver extends Logging {
           }
         }
         client ! JobResult(req.id, result)
+      } catch {
+        case t: Throwable =>
+          // Catch throwables in a best-effort to report job status back to the client. It's
+          // re-thrown so that the executor can destroy the affected thread (or the JVM can
+          // die or whatever would happen if the throwable bubbled up).
+          client ! JobResult(req.id, Failure(t))
+          throw t
       } finally {
         jc.setMonitorCb(null)
         activeJobs.remove(req.id)

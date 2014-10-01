@@ -93,7 +93,28 @@ class SparkClientSuite extends FunSuite with Matchers with BeforeAndAfterAll {
     res should be ("hello")
   }
 
-  localTest("basic Spark job") { case client =>
+  localTest("client tests in local mode") { case client =>
+    runSimpleJob(client)
+
+    // Make sure exceptions are reported.
+    try {
+      Await.result(client.submit { jc => throw new ArithmeticException("Bad at math.") }, timeout)
+      throw new IllegalStateException("Should not reach here.")
+    } catch {
+      case e: ArithmeticException =>
+        // All is good.
+    }
+
+    // Make sure throwables are caught.
+    try {
+      Await.result(client.submit { jc => throw new LinkageError("An error! Boo!") }, timeout)
+      throw new IllegalStateException("Should not reach here.")
+    } catch {
+      case e: LinkageError =>
+        // All is good.
+    }
+
+    // Should still be able to submit jobs after a failed one.
     runSimpleJob(client)
   }
 
