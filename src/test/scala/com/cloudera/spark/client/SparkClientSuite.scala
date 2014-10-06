@@ -59,15 +59,15 @@ class SparkClientSuite extends FunSuite with Matchers with BeforeAndAfterAll {
     }
   }
 
-  private def localTest(name: String)(fn: SparkClient => Unit) =
-    test(name) {
-      val conf = Map(
-        (ClientUtils.CONF_KEY_IN_PROCESS -> "true"),
-        ("spark.master" -> "local"),
-        ("spark.app.name" -> "SparkClientSuite Local App"),
-        ("spark.akka.logLifecycleEvents" -> "true"))
-      runTest(conf, fn)
-    }
+  private def localTest(name: String, extraConf: Map[String, String] = Map())
+      (fn: SparkClient => Unit) = test(name) {
+    val conf = Map(
+      (ClientUtils.CONF_KEY_IN_PROCESS -> "true"),
+      ("spark.master" -> "local"),
+      ("spark.app.name" -> "SparkClientSuite Local App"),
+      ("spark.akka.logLifecycleEvents" -> "true")) ++ extraConf
+    runTest(conf, fn)
+  }
 
   private def remoteTest(name: String)(fn: SparkClient => Unit) =
     test(name) {
@@ -88,12 +88,12 @@ class SparkClientSuite extends FunSuite with Matchers with BeforeAndAfterAll {
       runTest(conf, fn)
     }
 
-  localTest("basic job submission") { case client =>
+  localTest("basic job submission") { client =>
     val res = Await.result(client.submit { (jc) => "hello" }, timeout)
     res should be ("hello")
   }
 
-  localTest("client tests in local mode") { case client =>
+  localTest("client tests in local mode") { client =>
     runSimpleJob(client)
 
     // Make sure exceptions are reported.
@@ -118,7 +118,7 @@ class SparkClientSuite extends FunSuite with Matchers with BeforeAndAfterAll {
     runSimpleJob(client)
   }
 
-  localTest("metrics collection") { case client =>
+  localTest("metrics collection") { client =>
     val future = runSimpleJob(client)
     val metrics = future.metrics
     metrics.getJobIds().size should be (1)
@@ -131,7 +131,7 @@ class SparkClientSuite extends FunSuite with Matchers with BeforeAndAfterAll {
     metrics2.getAllMetrics().executorRunTime should be > 0L
   }
 
-  localTest("add jars and files") { case client =>
+  localTest("add jars and files") { client =>
     var jar: Option[File] = None
     var file: Option[File]  = None
 
@@ -205,7 +205,11 @@ class SparkClientSuite extends FunSuite with Matchers with BeforeAndAfterAll {
     }
   }
 
-  remoteTest("basic remote job submission") { case client =>
+  localTest("kryo serializer", Map(ClientUtils.CONF_KEY_SERIALIZER -> "kryo")) { client =>
+    runSimpleJob(client)
+  }
+
+  remoteTest("basic remote job submission") { client =>
     val res = Await.result(client.submit { (jc) => "hello" }, timeout)
     res should be ("hello")
   }

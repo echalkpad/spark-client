@@ -39,6 +39,11 @@
 
   <dependencies>
     <dependency>
+      <groupId>com.twitter</groupId>
+      <artifactId>chill-akka_${scala.binary.version}</artifactId>
+      <version>0.3.6</version>
+    </dependency>
+    <dependency>
       <groupId>org.apache.spark</groupId>
       <artifactId>spark-core_${scala.binary.version}</artifactId>
       <version>${spark.version}</version>

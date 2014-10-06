@@ -32,6 +32,7 @@ private[client] object ClientUtils extends Logging {
 
   val CONF_KEY_SECRET = "spark.client.authentication.secret"
   val CONF_KEY_IN_PROCESS = "spark.client.do_not_use_this.run_driver_in_process"
+  val CONF_KEY_SERIALIZER = "spark-remote.akka.serializer"
 
   /**
    * Create a new ActorSystem based on the given configuration.
@@ -61,11 +62,13 @@ private[client] object ClientUtils extends Logging {
     val akkaHeartBeatPauses = getInt("spark.akka.heartbeat.pauses", 600)
     val akkaFailureDetector = getDouble("spark.akka.failure-detector.threshold", 300.0)
     val akkaHeartBeatInterval = getInt("spark.akka.heartbeat.interval", 1000)
+    val akkaSerializer = conf.get(CONF_KEY_SERIALIZER).getOrElse("java")
 
     val secret = conf.get(CONF_KEY_SECRET).getOrElse(
       throw new IllegalArgumentException(s"$CONF_KEY_SECRET not set."))
 
     val host = findLocalIpAddress()
+
 
     val akkaConf = ConfigFactory.parseMap(conf.filter { case (k, v) => k.startsWith("akka.") })
       .withFallback(
@@ -76,6 +79,9 @@ private[client] object ClientUtils extends Logging {
         |akka.stdout-loglevel = "ERROR"
         |akka.jvm-exit-on-fatal-error = off
         |akka.actor.default-dispatcher.throughput = $akkaBatchSize
+        |akka.actor.serializers.java = "akka.serialization.JavaSerializer"
+        |akka.actor.serializers.kryo = "com.twitter.chill.akka.AkkaSerializer"
+        |akka.actor.serialization-bindings = { "java.io.Serializable" = "$akkaSerializer" }
         |akka.log-config-on-start = $logAkkaConfig
         |akka.log-dead-letters = $lifecycleEvents
         |akka.log-dead-letters-during-shutdown = $lifecycleEvents

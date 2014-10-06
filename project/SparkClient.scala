@@ -31,6 +31,7 @@ object SparkClient extends Build {
       Seq("-Dspark.test.home=" + sys.props.get("spark.test.home").getOrElse("")),
     libraryDependencies ++= Seq(
       "org.apache.spark"      % "spark-core_2.10"   % sparkVersion,
+      "com.twitter"           % "chill-akka_2.10"   % "0.3.6",
       "com.novocode"          % "junit-interface"   % "0.9"         % "test",
       "junit"                 % "junit"             % "4.10"        % "test",
       "org.scalatest"         % "scalatest_2.10"    % "2.1.5"       % "test"
