@@ -24,10 +24,12 @@ import java.util.Properties
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
+import scala.collection.mutable
 import scala.concurrent.Future
 
 import akka.actor.{Actor, ActorRef, ActorSelection, ActorSystem, Props}
 import org.apache.spark.{Logging, SparkContext, SparkException}
+import org.apache.spark.deploy.SparkSubmit
 
 import com.cloudera.spark.client._
 import com.cloudera.spark.client.impl.Protocol._
@@ -106,10 +108,6 @@ private[client] class SparkClientImpl(conf: Map[String, String]) extends SparkCl
           }
         }
       } else {
-        val sparkHome = conf.get("spark.home").orElse(sys.env.get("SPARK_HOME")).getOrElse(
-          throw new IllegalStateException("Need to define spark.home or SPARK_HOME."))
-        val sparkSubmit = new File(s"$sparkHome/bin/spark-submit")
-
         // Create a file with all the job properties to be read by spark-submit. Change the
         // file's permissions so that only the owner can read it. This avoid having the
         // connection secret show up in the child process's command line.
@@ -129,8 +127,38 @@ private[client] class SparkClientImpl(conf: Map[String, String]) extends SparkCl
           writer.close()
         }
 
-        val argv = Array(
-          sparkSubmit.getAbsolutePath(),
+        // Define how to pass options to the child process. If launching in client (or local)
+        // mode, the driver options need to be passed directly on the command line. Otherwise,
+        // SparkSubmit will take care of that for us.
+        val master = conf.get("spark.master").getOrElse(
+          throw new IllegalArgumentException("spark.master is not defined."))
+        val jvmOpts: Seq[String] =
+          if (master.startsWith("local") || master.startsWith("mesos") || master.endsWith("-client")) {
+            val opts = new mutable.ListBuffer[String]()
+
+            conf.get("spark.driver.memory").foreach { x =>
+              opts += s"-Xms$x"
+              opts += s"-Xmx$x"
+            }
+            conf.get("spark.driver.extraClassPath").foreach { x =>
+              opts += "-classpath"
+              opts += x
+            }
+            conf.get("spark.driver.extraLibPath").foreach { x =>
+              opts += s"-Djava.library.path=$x"
+            }
+            conf.get("spark.driver.extraJavaOptions").foreach { x =>
+              opts ++= x.split(" ")
+            }
+
+            opts
+          } else {
+            Nil
+          }
+
+        val java = new File(sys.props("java.home"), "bin/java").getAbsolutePath()
+        val argv = Seq(java) ++ jvmOpts ++ Array(
+          SparkSubmit.getClass.getName().stripSuffix("$"),
           "--properties-file", properties.getAbsolutePath(),
           "--class", RemoteDriver.getClass.getName().stripSuffix("$"),
           SparkContext.jarOfClass(this.getClass()).getOrElse("spark-internal"),

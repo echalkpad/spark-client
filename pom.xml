@@ -158,7 +158,6 @@
           <stderr/>
           <systemProperties>
             <java.awt.headless>true</java.awt.headless>
-            <spark.test.home>${spark.test.home}</spark.test.home>
             <spark.testing>1</spark.testing>
           </systemProperties>
         </configuration>

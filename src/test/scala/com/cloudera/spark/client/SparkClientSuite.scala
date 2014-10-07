@@ -71,8 +71,6 @@ class SparkClientSuite extends FunSuite with Matchers with BeforeAndAfterAll {
 
   private def remoteTest(name: String)(fn: SparkClient => Unit) =
     test(name) {
-      val sparkHome = sys.props.getOrElse("spark.test.home", fail("spark.test.home is not set!"))
-
       // We need to propagate the classpath here since at this point there might not be an
       // actual jar file for the client.
       val classpath = sys.props("java.class.path")
@@ -82,7 +80,6 @@ class SparkClientSuite extends FunSuite with Matchers with BeforeAndAfterAll {
           s"-Dspark.test.log.file=$driverLogFile -Dspark.test.log.file.append=true"),
         ("spark.master" -> "local"),
         ("spark.app.name" -> "SparkClientSuite Remote App"),
-        ("spark.home" -> sparkHome),
         ("spark.driver.extraClassPath" -> classpath),
         ("spark.executor.extraClassPath" -> classpath))
       runTest(conf, fn)

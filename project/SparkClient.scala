@@ -27,8 +27,6 @@ object SparkClient extends Build {
     version             := "0.1-SNAPSHOT",
     scalaVersion        := "2.10.4",
     fork in Test        := true,
-    javaOptions in Test :=
-      Seq("-Dspark.test.home=" + sys.props.get("spark.test.home").getOrElse("")),
     libraryDependencies ++= Seq(
       "org.apache.spark"      % "spark-core_2.10"   % sparkVersion,
       "com.twitter"           % "chill-akka_2.10"   % "0.3.6",

@@ -43,16 +43,9 @@ public class JavaSparkClientSuite {
       conf.put("spark.master", "local");
       conf.put("spark.app.name", "JavaSparkClientSuite Local App");
     } else {
-      String sparkHome = System.getProperty("spark.test.home");
-      if (sparkHome == null) {
-        fail("spark.test.home is not set!");
-      }
-
       String classpath = System.getProperty("java.class.path");
-
       conf.put("spark.master", "local");
       conf.put("spark.app.name", "SparkClientSuite Remote App");
-      conf.put("spark.home", sparkHome);
       conf.put("spark.driver.extraClassPath", classpath);
       conf.put("spark.executor.extraClassPath", classpath);
     }
