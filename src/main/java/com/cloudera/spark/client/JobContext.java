@@ -15,12 +15,10 @@
  * limitations under the License.
  */
 
-package com.cloudera.spark.client.api.java
+package com.cloudera.spark.client;
 
-import org.apache.spark.FutureAction
-import org.apache.spark.api.java.JavaSparkContext
-
-import com.cloudera.spark.client._
+import org.apache.spark.FutureAction;
+import org.apache.spark.api.java.JavaSparkContext;
 
 /**
  * Holds runtime information about the job execution context.
@@ -28,12 +26,10 @@ import com.cloudera.spark.client._
  * An instance of this class is kept on the node hosting a remote Spark context and is made
  * available to jobs being executed via RemoteSparkContext#submit().
  */
-class JavaJobContext private[java] (private val jc: JobContext) {
-
-  private val jsc = new JavaSparkContext(jc.sc)
+public interface JobContext {
 
   /** The shared SparkContext instance. */
-  def sc: JavaSparkContext = jsc
+  JavaSparkContext sc();
 
   /**
    * Monitor a job. This allows job-related information (such as metrics) to be communicated
@@ -41,6 +37,6 @@ class JavaJobContext private[java] (private val jc: JobContext) {
    *
    * @return The job (unmodified).
    */
-  def monitor[T](job: FutureAction[T]): FutureAction[T] = jc.monitor(job)
+  <T> FutureAction<T> monitor(FutureAction<T> job);
 
 }

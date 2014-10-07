@@ -15,27 +15,30 @@
  * limitations under the License.
  */
 
-package com.cloudera.spark.client
+package com.cloudera.spark.client.metrics;
 
-import org.apache.spark.{FutureAction, SparkContext}
+import java.io.Serializable;
+
+import org.apache.spark.executor.TaskMetrics;
 
 /**
- * Holds runtime information about the job execution context.
- *
- * An instance of this class is kept on the node hosting a remote Spark context and is made
- * available to jobs being executed via RemoteSparkContext#submit().
+ * Metrics pertaining to reading input data.
  */
-trait JobContext {
+public class InputMetrics implements Serializable {
 
-  /** The shared SparkContext instance. */
-  def sc: SparkContext
+  public final DataReadMethod readMethod;
+  public final long bytesRead;
 
-  /**
-   * Monitor a job. This allows job-related information (such as metrics) to be communicated
-   * back to the client.
-   *
-   * @return The job (unmodified).
-   */
-  def monitor[T](job: FutureAction[T]): FutureAction[T]
+  public InputMetrics(
+      DataReadMethod readMethod,
+      long bytesRead) {
+    this.readMethod = readMethod;
+    this.bytesRead = bytesRead;
+  }
+
+  public InputMetrics(TaskMetrics metrics) {
+    this(DataReadMethod.valueOf(metrics.inputMetrics().get().readMethod().toString()),
+      metrics.inputMetrics().get().bytesRead());
+  }
 
 }

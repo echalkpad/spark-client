@@ -15,22 +15,12 @@
  * limitations under the License.
  */
 
-package com.cloudera.spark.client.impl
+package com.cloudera.spark.client;
 
-import scala.util.Try
+import org.apache.spark.FutureAction;
 
-import akka.actor.{Actor, Props}
-import akka.remote.DisassociatedEvent
-import org.apache.spark.{SparkConf, SparkContext}
+interface MonitorCallback {
 
-import com.cloudera.spark.client._
+  void call(FutureAction<?> future);
 
-private[impl] object Protocol {
-  case class CancelJob(id: String)
-  case class EndSession()
-  case class Error(cause: Exception)
-  case class Hello(remoteUrl: String)
-  case class JobMetrics(jobId: String, sparkJobId: Int, stageId: Int, taskId: Long, metrics: Metrics)
-  case class JobRequest[T >: Serializable](id: String, job: (JobContext) => T)
-  case class JobResult[T >: Serializable](id: String, result: Try[T])
 }

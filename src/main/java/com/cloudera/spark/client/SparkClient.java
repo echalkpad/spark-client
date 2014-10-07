@@ -15,18 +15,16 @@
  * limitations under the License.
  */
 
-package com.cloudera.spark.client
+package com.cloudera.spark.client;
 
-import java.net.URL
-
-import scala.concurrent.Future
-
-import com.cloudera.spark.client.impl._
+import java.net.URL;
+import java.io.Serializable;
+import java.util.concurrent.Future;
 
 /**
- * Defines the client interface for a remote Spark context.
+ * Defines the API for the Spark remote client.
  */
-trait SparkClient {
+public interface SparkClient {
 
   /**
    * Submits a job for asynchronous execution.
@@ -34,14 +32,14 @@ trait SparkClient {
    * @param job The job to execute.
    * @return A handle that be used to monitor the job.
    */
-  def submit[T >: Serializable](job: JobContext => T): JobHandle[T]
+  <T extends Serializable> JobHandle<T> submit(Job<T> job);
 
   /**
    * Stops the remote context.
    *
    * Any pending jobs will be cancelled, and the remote context will be torn down.
    */
-  def stop(): Unit
+  void stop();
 
   /**
    * Adds a jar file to the running remote context.
@@ -53,7 +51,7 @@ trait SparkClient {
    * @param url The location of the jar file.
    * @return A future that can be used to monitor the operation.
    */
-  def addJar(url: URL): Future[_]
+  Future<?> addJar(URL url);
 
   /**
    * Adds a file to the running remote context.
@@ -65,27 +63,6 @@ trait SparkClient {
    * @param url The location of the file.
    * @return A future that can be used to monitor the operation.
    */
-  def addFile(url: URL): Future[_]
-
-}
-
-object SparkClient {
-
-  /**
-   * Initializes the SparkClient library. Must be called before creating client instances.
-   *
-   * @param conf Map containing configuration parameters for the client.
-   */
-  def initialize(conf: Map[String, String]): Unit = SparkClientImpl.initialize(conf)
-
-  /** Stops the SparkClient library. */
-  def stop(): Unit = SparkClientImpl.stop()
-
-  /**
-   * Instantiates a new Spark client.
-   *
-   * @param conf Configuration for the remote Spark application.
-   */
-  def createClient(conf: Map[String, String]): SparkClient = new SparkClientImpl(conf)
+  Future<?> addFile(URL url);
 
 }

@@ -15,16 +15,15 @@
  * limitations under the License.
  */
 
-package com.cloudera.spark.client.api.java
+package com.cloudera.spark.client;
 
-import com.cloudera.spark.client._
+import java.io.Serializable;
 
 /**
- * Defines the Java API for the Spark remote client interface.
+ * Interface for a Spark remote job.
  */
-trait JavaJob[T >: Serializable] extends Serializable {
+interface Job<T extends Serializable> extends Serializable {
 
-  @throws[Exception]
-  def call(jc: JavaJobContext): T
+  T call(JobContext jc) throws Exception;
 
 }

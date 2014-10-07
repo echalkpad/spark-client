@@ -15,27 +15,30 @@
  * limitations under the License.
  */
 
-package com.cloudera.spark.client.impl
+package com.cloudera.spark.client;
 
-import org.apache.spark.{FutureAction, SparkContext}
+import java.io.Serializable;
+import java.util.concurrent.Future;
 
-import com.cloudera.spark.client._
+/**
+ * A handle to a submitted job. Allows for monitoring and controlling of the running remote job.
+ */
+interface JobHandle<T extends Serializable> extends Future<T> {
 
-class JobContextImpl(ctx: SparkContext) extends JobContext {
+  /**
+   * The client job ID. This is unrelated to any Spark jobs that might be triggered by the
+   * submitted job.
+   */
+  String getClientJobId();
 
-  private val monitorCb = new ThreadLocal[FutureAction[_] => Unit]()
+  /**
+   * A collection of metrics collected from the Spark jobs triggered by this job.
+   *
+   * To collect job metrics on the client, Spark jobs must be registered with JobContext::monitor()
+   * on the remote end.
+   */
+  MetricsCollection getMetrics();
 
-  override def sc: SparkContext = ctx
-
-  override def monitor[T](job: FutureAction[T]) = {
-    monitorCb.get()(job)
-    job
-  }
-
-  private[impl] def setMonitorCb(cb: FutureAction[_] => Unit) = monitorCb.set(cb)
-
-  private[impl] def stop() = {
-    sc.stop()
-  }
+  // TODO: expose job status?
 
 }
