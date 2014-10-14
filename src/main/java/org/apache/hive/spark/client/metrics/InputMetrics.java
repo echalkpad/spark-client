@@ -15,32 +15,30 @@
  * limitations under the License.
  */
 
-package com.cloudera.spark.client.metrics;
+package org.apache.hive.spark.client.metrics;
 
 import java.io.Serializable;
 
 import org.apache.spark.executor.TaskMetrics;
 
 /**
- * Metrics pertaining to writing shuffle data.
+ * Metrics pertaining to reading input data.
  */
-public class ShuffleWriteMetrics implements Serializable {
+public class InputMetrics implements Serializable {
 
-  /** Number of bytes written for the shuffle by tasks. */
-  public final long shuffleBytesWritten;
-  /** Time tasks spent blocking on writes to disk or buffer cache, in nanoseconds. */
-  public final long shuffleWriteTime;
+  public final DataReadMethod readMethod;
+  public final long bytesRead;
 
-  public ShuffleWriteMetrics(
-      long shuffleBytesWritten,
-      long shuffleWriteTime) {
-    this.shuffleBytesWritten = shuffleBytesWritten;
-    this.shuffleWriteTime = shuffleWriteTime;
+  public InputMetrics(
+      DataReadMethod readMethod,
+      long bytesRead) {
+    this.readMethod = readMethod;
+    this.bytesRead = bytesRead;
   }
 
-  public ShuffleWriteMetrics(TaskMetrics metrics) {
-    this(metrics.shuffleWriteMetrics().get().shuffleBytesWritten(),
-      metrics.shuffleWriteMetrics().get().shuffleWriteTime());
+  public InputMetrics(TaskMetrics metrics) {
+    this(DataReadMethod.valueOf(metrics.inputMetrics().get().readMethod().toString()),
+      metrics.inputMetrics().get().bytesRead());
   }
 
 }

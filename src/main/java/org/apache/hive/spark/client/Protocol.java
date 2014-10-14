@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package com.cloudera.spark.client;
+package org.apache.hive.spark.client;
 
 import java.io.Serializable;
 
-import com.cloudera.spark.client.metrics.Metrics;
+import org.apache.hive.spark.client.metrics.Metrics;
 
 final class Protocol {
 

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package com.cloudera.spark.client;
+package org.apache.hive.spark.client;
 
 import java.io.Serializable;
 import java.util.concurrent.ExecutionException;

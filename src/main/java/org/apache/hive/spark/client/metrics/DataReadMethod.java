@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package com.cloudera.spark.client;
+package org.apache.hive.spark.client.metrics;
 
-import org.apache.spark.FutureAction;
-
-interface MonitorCallback {
-
-  void call(FutureAction<?> future);
-
+/**
+ * Method by which input data was read. Network means that the data was read over the network
+ * from a remote block manager (which may have stored the data on-disk or in-memory).
+ */
+public enum DataReadMethod {
+  Memory, Disk, Hadoop, Network, Multiple
 }

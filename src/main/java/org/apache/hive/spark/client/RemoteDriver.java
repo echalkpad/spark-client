@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package com.cloudera.spark.client;
+package org.apache.hive.spark.client;
 
 import java.io.Serializable;
 import java.util.Iterator;
@@ -46,7 +46,7 @@ import org.apache.spark.api.java.JavaSparkContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.cloudera.spark.client.metrics.Metrics;
+import org.apache.hive.spark.client.metrics.Metrics;
 
 /**
  * Driver code for the Spark client library.

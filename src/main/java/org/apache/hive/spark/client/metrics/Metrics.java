@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package com.cloudera.spark.client.metrics;
+package org.apache.hive.spark.client.metrics;
 
 import java.io.Serializable;
 

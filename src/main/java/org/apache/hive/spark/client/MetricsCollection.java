@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package com.cloudera.spark.client;
+package org.apache.hive.spark.client;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -33,11 +33,11 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import com.cloudera.spark.client.metrics.DataReadMethod;
-import com.cloudera.spark.client.metrics.InputMetrics;
-import com.cloudera.spark.client.metrics.Metrics;
-import com.cloudera.spark.client.metrics.ShuffleReadMetrics;
-import com.cloudera.spark.client.metrics.ShuffleWriteMetrics;
+import org.apache.hive.spark.client.metrics.DataReadMethod;
+import org.apache.hive.spark.client.metrics.InputMetrics;
+import org.apache.hive.spark.client.metrics.Metrics;
+import org.apache.hive.spark.client.metrics.ShuffleReadMetrics;
+import org.apache.hive.spark.client.metrics.ShuffleWriteMetrics;
 
 /**
  * Provides metrics collected for a submitted job.

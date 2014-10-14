@@ -15,12 +15,30 @@
  * limitations under the License.
  */
 
-package com.cloudera.spark.client.metrics;
+package org.apache.hive.spark.client;
+
+import java.io.Serializable;
+import java.util.concurrent.Future;
 
 /**
- * Method by which input data was read. Network means that the data was read over the network
- * from a remote block manager (which may have stored the data on-disk or in-memory).
+ * A handle to a submitted job. Allows for monitoring and controlling of the running remote job.
  */
-public enum DataReadMethod {
-  Memory, Disk, Hadoop, Network, Multiple
+interface JobHandle<T extends Serializable> extends Future<T> {
+
+  /**
+   * The client job ID. This is unrelated to any Spark jobs that might be triggered by the
+   * submitted job.
+   */
+  String getClientJobId();
+
+  /**
+   * A collection of metrics collected from the Spark jobs triggered by this job.
+   *
+   * To collect job metrics on the client, Spark jobs must be registered with JobContext::monitor()
+   * on the remote end.
+   */
+  MetricsCollection getMetrics();
+
+  // TODO: expose job status?
+
 }

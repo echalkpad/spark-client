@@ -15,30 +15,28 @@
  * limitations under the License.
  */
 
-package com.cloudera.spark.client;
+package org.apache.hive.spark.client;
 
-import java.io.Serializable;
-import java.util.concurrent.Future;
+import org.apache.spark.FutureAction;
+import org.apache.spark.api.java.JavaSparkContext;
 
 /**
- * A handle to a submitted job. Allows for monitoring and controlling of the running remote job.
+ * Holds runtime information about the job execution context.
+ *
+ * An instance of this class is kept on the node hosting a remote Spark context and is made
+ * available to jobs being executed via RemoteSparkContext#submit().
  */
-interface JobHandle<T extends Serializable> extends Future<T> {
+public interface JobContext {
+
+  /** The shared SparkContext instance. */
+  JavaSparkContext sc();
 
   /**
-   * The client job ID. This is unrelated to any Spark jobs that might be triggered by the
-   * submitted job.
-   */
-  String getClientJobId();
-
-  /**
-   * A collection of metrics collected from the Spark jobs triggered by this job.
+   * Monitor a job. This allows job-related information (such as metrics) to be communicated
+   * back to the client.
    *
-   * To collect job metrics on the client, Spark jobs must be registered with JobContext::monitor()
-   * on the remote end.
+   * @return The job (unmodified).
    */
-  MetricsCollection getMetrics();
-
-  // TODO: expose job status?
+  <T> FutureAction<T> monitor(FutureAction<T> job);
 
 }

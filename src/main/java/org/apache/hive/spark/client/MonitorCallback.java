@@ -15,39 +15,12 @@
  * limitations under the License.
  */
 
-package com.cloudera.spark.client;
+package org.apache.hive.spark.client;
 
 import org.apache.spark.FutureAction;
-import org.apache.spark.api.java.JavaSparkContext;
 
-class JobContextImpl implements JobContext {
+interface MonitorCallback {
 
-  private final JavaSparkContext sc;
-  private final ThreadLocal<MonitorCallback> monitorCb;
-
-  public JobContextImpl(JavaSparkContext sc) {
-    this.sc = sc;
-    this.monitorCb = new ThreadLocal<MonitorCallback>();
-  }
-
-
-  @Override
-  public JavaSparkContext sc() {
-    return sc;
-  }
-
-  @Override
-  public <T> FutureAction<T> monitor(FutureAction<T> job) {
-    monitorCb.get().call(job);
-    return job;
-  }
-
-  void setMonitorCb(MonitorCallback cb) {
-    monitorCb.set(cb);
-  }
-
-  void stop() {
-    sc.stop();
-  }
+  void call(FutureAction<?> future);
 
 }

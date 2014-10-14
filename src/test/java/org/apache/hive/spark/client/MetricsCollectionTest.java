@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package com.cloudera.spark.client;
+package org.apache.hive.spark.client;
 
 import java.util.Arrays;
 
@@ -25,7 +25,7 @@ import com.google.common.collect.Sets;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
-import com.cloudera.spark.client.metrics.*;
+import org.apache.hive.spark.client.metrics.*;
 
 public class MetricsCollectionTest {
 
