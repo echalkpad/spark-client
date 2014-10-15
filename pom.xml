@@ -32,6 +32,10 @@
     <scala.binary.version>2.10</scala.binary.version>
     <spark.version>1.2.0-SNAPSHOT</spark.version>
 
+    <!-- Should match Spark. -->
+    <akka.group>org.spark-project.akka</akka.group>
+    <akka.version>2.3.4-spark</akka.version>
+
     <!--
      Note: this library depends on Guava 11 to match Hive. But we need Guava 14 on the classpath
      during tests, since Spark needs that version. So the version is configurable.
@@ -43,6 +47,11 @@
 
   <dependencies>
     <dependency>
+      <groupId>${akka.group}</groupId>
+      <artifactId>akka-actor_${scala.binary.version}</artifactId>
+      <version>${akka.version}</version>
+    </dependency>
+    <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
       <version>${guava.version}</version>
@@ -51,6 +60,12 @@
       <groupId>com.twitter</groupId>
       <artifactId>chill-akka_${scala.binary.version}</artifactId>
       <version>0.3.6</version>
+      <exclusions>
+        <exclusion>
+          <groupId>com.typesafe.akka</groupId>
+          <artifactId>akka-actor_${scala.binary.version}</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.spark</groupId>

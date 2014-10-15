@@ -46,16 +46,16 @@ public class MetricsCollectionTest {
     assertEquals(ImmutableSet.of(1L, 2L), collection.getTaskIds(1, 1));
 
     Metrics task112 = collection.getTaskMetrics(1, 1, 2);
-    checkMetrics(task112, taskValue(1, 1, 2), taskValue(1, 1, 2));
+    checkMetrics(task112, taskValue(1, 1, 2));
 
     Metrics stage21 = collection.getStageMetrics(2, 1);
-    checkMetrics(stage21, stageValue(2, 1, 2), taskValue(2, 1, 2));
+    checkMetrics(stage21, stageValue(2, 1, 2));
 
     Metrics job1 = collection.getJobMetrics(1);
-    checkMetrics(job1, jobValue(1, 2, 2), taskValue(1, 2, 2));
+    checkMetrics(job1, jobValue(1, 2, 2));
 
     Metrics global = collection.getAllMetrics();
-    checkMetrics(global, globalValue(2, 2, 2), taskValue(2, 2, 2));
+    checkMetrics(global, globalValue(2, 2, 2));
   }
 
   @Test
@@ -112,7 +112,7 @@ public class MetricsCollectionTest {
     long value = 1000000 * jobId + 1000 * stageId + taskId;
     return new Metrics(value, value, value, value, value, value, value,
       Optional.fromNullable(new InputMetrics(DataReadMethod.Memory, value)),
-      Optional.fromNullable(new ShuffleReadMetrics(value, (int) value, (int) value, value, value)),
+      Optional.fromNullable(new ShuffleReadMetrics((int) value, (int) value, value, value)),
       Optional.fromNullable(new ShuffleWriteMetrics(value, value)));
   }
 
@@ -148,7 +148,7 @@ public class MetricsCollectionTest {
     return value;
   }
 
-  private void checkMetrics(Metrics metrics, long expected, long max) {
+  private void checkMetrics(Metrics metrics, long expected) {
     assertEquals(expected, metrics.executorDeserializeTime);
     assertEquals(expected, metrics.executorRunTime);
     assertEquals(expected, metrics.resultSize);
@@ -162,7 +162,6 @@ public class MetricsCollectionTest {
     assertEquals(expected, im.bytesRead);
 
     ShuffleReadMetrics srm = metrics.shuffleReadMetrics.get();
-    assertEquals(max, srm.shuffleFinishTime);
     assertEquals(expected, srm.remoteBlocksFetched);
     assertEquals(expected, srm.localBlocksFetched);
     assertEquals(expected, srm.fetchWaitTime);

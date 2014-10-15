@@ -91,7 +91,7 @@ class SparkClientImpl implements SparkClient {
   @Override
   public <T extends Serializable> JobHandle<T> submit(Job<T> job) {
     String jobId = ClientUtils.randomName();
-    remoteRef.tell(new Protocol.JobRequest(jobId, job));
+    remoteRef.tell(new Protocol.JobRequest(jobId, job), clientRef);
 
     JobHandleImpl<T> handle = new JobHandleImpl<T>(this, jobId);
     jobs.put(jobId, handle);
@@ -102,7 +102,7 @@ class SparkClientImpl implements SparkClient {
   public void stop() {
     if (remoteRef != null) {
       LOG.info("Sending EndSession to remote actor.");
-      remoteRef.tell(new Protocol.EndSession());
+      remoteRef.tell(new Protocol.EndSession(), clientRef);
     }
     unbind(clientRef);
     try {
@@ -123,7 +123,7 @@ class SparkClientImpl implements SparkClient {
   }
 
   void cancel(String jobId) {
-    remoteRef.tell(new Protocol.CancelJob(jobId));
+    remoteRef.tell(new Protocol.CancelJob(jobId), clientRef);
   }
 
   private Thread startDriver() throws IOException {

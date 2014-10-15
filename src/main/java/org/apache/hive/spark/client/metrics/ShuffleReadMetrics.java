@@ -26,8 +26,6 @@ import org.apache.spark.executor.TaskMetrics;
  */
 public class ShuffleReadMetrics implements Serializable {
 
-  /** Absolute time when tasks finished reading shuffle data. */
-  public final long shuffleFinishTime;
   /** Number of remote blocks fetched in shuffles by tasks. */
   public final int remoteBlocksFetched;
   /** Number of local blocks fetched in shuffles by tasks. */
@@ -43,12 +41,10 @@ public class ShuffleReadMetrics implements Serializable {
   public final long remoteBytesRead;
 
   public ShuffleReadMetrics(
-      long shuffleFinishTime,
       int remoteBlocksFetched,
       int localBlocksFetched,
       long fetchWaitTime,
       long remoteBytesRead) {
-    this.shuffleFinishTime = shuffleFinishTime;
     this.remoteBlocksFetched = remoteBlocksFetched;
     this.localBlocksFetched = localBlocksFetched;
     this.fetchWaitTime = fetchWaitTime;
@@ -56,8 +52,7 @@ public class ShuffleReadMetrics implements Serializable {
   }
 
   public ShuffleReadMetrics(TaskMetrics metrics) {
-    this(metrics.shuffleReadMetrics().get().shuffleFinishTime(),
-      metrics.shuffleReadMetrics().get().remoteBlocksFetched(),
+    this(metrics.shuffleReadMetrics().get().remoteBlocksFetched(),
       metrics.shuffleReadMetrics().get().localBlocksFetched(),
       metrics.shuffleReadMetrics().get().fetchWaitTime(),
       metrics.shuffleReadMetrics().get().remoteBytesRead());

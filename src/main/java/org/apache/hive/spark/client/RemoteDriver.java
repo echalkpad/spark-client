@@ -110,7 +110,7 @@ public class RemoteDriver {
       throw e;
     }
 
-    client.tell(new Protocol.Hello(info.url + "/RemoteDriver"));
+    client.tell(new Protocol.Hello(info.url + "/RemoteDriver"), actor);
     running = true;
   }
 
@@ -132,7 +132,7 @@ public class RemoteDriver {
       }
 
       if (msg != null) {
-        client.tell(msg);
+        client.tell(msg, actor);
       }
       if (jc != null) {
         jc.stop();
@@ -214,12 +214,12 @@ public class RemoteDriver {
             completed.wait();
           }
         }
-        client.tell(new Protocol.JobResult(req.id, result, null));
+        client.tell(new Protocol.JobResult(req.id, result, null), actor);
       } catch (Throwable t) {
           // Catch throwables in a best-effort to report job status back to the client. It's
           // re-thrown so that the executor can destroy the affected thread (or the JVM can
           // die or whatever would happen if the throwable bubbled up).
-          client.tell(new Protocol.JobResult(req.id, null, t));
+          client.tell(new Protocol.JobResult(req.id, null, t), actor);
           throw new ExecutionException(t);
       } finally {
         jc.setMonitorCb(null);
@@ -293,7 +293,7 @@ public class RemoteDriver {
         String clientId = getClientId(jobId);
         if (clientId != null) {
           client.tell(new Protocol.JobMetrics(clientId, jobId, taskEnd.stageId(),
-              taskEnd.taskInfo().taskId(), metrics));
+              taskEnd.taskInfo().taskId(), metrics), actor);
         }
       }
     }

@@ -156,7 +156,6 @@ public class MetricsCollection {
 
       // Shuffle read metrics.
       boolean hasShuffleReadMetrics = false;
-      long shuffleFinishTime = 0L;
       int remoteBlocksFetched = 0;
       int localBlocksFetched = 0;
       long fetchWaitTime = 0L;
@@ -191,7 +190,6 @@ public class MetricsCollection {
         if (m.shuffleReadMetrics.isPresent()) {
           ShuffleReadMetrics srm = m.shuffleReadMetrics.get();
           hasShuffleReadMetrics = true;
-          shuffleFinishTime = Math.max(shuffleFinishTime, srm.shuffleFinishTime);
           remoteBlocksFetched += srm.remoteBlocksFetched;
           localBlocksFetched += srm.localBlocksFetched;
           fetchWaitTime += srm.fetchWaitTime;
@@ -214,7 +212,6 @@ public class MetricsCollection {
       Optional<ShuffleReadMetrics> shuffleReadMetrics = Optional.absent();
       if (hasShuffleReadMetrics) {
         shuffleReadMetrics = Optional.of(new ShuffleReadMetrics(
-          shuffleFinishTime,
           remoteBlocksFetched,
           localBlocksFetched,
           fetchWaitTime,
