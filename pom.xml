@@ -89,6 +89,7 @@
         <configuration>
           <systemPropertyVariables>
             <java.awt.headless>true</java.awt.headless>
+            <spark.home>${spark.home}</spark.home>
           </systemPropertyVariables>
           <redirectTestOutputToFile>${test.redirectToFile}</redirectTestOutputToFile>
           <useFile>${test.redirectToFile}</useFile>

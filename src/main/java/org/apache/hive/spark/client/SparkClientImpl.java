@@ -180,37 +180,48 @@ class SparkClientImpl implements SparkClient {
       Preconditions.checkArgument(master != null, "spark.master is not defined.");
 
       List<String> argv = Lists.newArrayList();
-      argv.add(new File(System.getProperty("java.home"), "bin/java").getAbsolutePath());
 
-      if (master.startsWith("local") || master.startsWith("mesos") || master.endsWith("-client")) {
-        String mem = conf.get("spark.driver.memory");
-        if (mem != null) {
-          argv.add("-Xms" + mem);
-          argv.add("-Xmx" + mem);
-        }
+      // If a Spark installation is provided, use the spark-submit script. Otherwise, call the
+      // SparkSubmit class directly, which has some caveats (like having to provide a proper
+      // version of Guava on the classpath depending on the deploy mode).
+      if (conf.get("spark.home") != null) {
+        argv.add(new File(conf.get("spark.home"), "bin/spark-submit").getAbsolutePath());
+      } else {
+        LOG.info("No spark.home provided, calling SparkSubmit directly.");
+        argv.add(new File(System.getProperty("java.home"), "bin/java").getAbsolutePath());
 
-        String cp = conf.get("spark.driver.extraClassPath");
-        if (cp != null) {
-          argv.add("-classpath");
-          argv.add(cp);
-        }
+        if (master.startsWith("local") || master.startsWith("mesos") || master.endsWith("-client")) {
+          String mem = conf.get("spark.driver.memory");
+          if (mem != null) {
+            argv.add("-Xms" + mem);
+            argv.add("-Xmx" + mem);
+          }
 
-        String libPath = conf.get("spark.driver.extraLibPath");
-        if (libPath != null) {
-          argv.add("-Djava.library.path=" + libPath);
-        }
+          String cp = conf.get("spark.driver.extraClassPath");
+          if (cp != null) {
+            argv.add("-classpath");
+            argv.add(cp);
+          }
 
-        String extra = conf.get("spark.driver.extraJavaOptions");
-        if (extra != null) {
-          for (String opt : extra.split("[ ]")) {
-            if (!opt.trim().isEmpty()) {
-              argv.add(opt.trim());
+          String libPath = conf.get("spark.driver.extraLibPath");
+          if (libPath != null) {
+            argv.add("-Djava.library.path=" + libPath);
+          }
+
+          String extra = conf.get("spark.driver.extraJavaOptions");
+          if (extra != null) {
+            for (String opt : extra.split("[ ]")) {
+              if (!opt.trim().isEmpty()) {
+                argv.add(opt.trim());
+              }
             }
           }
         }
+
+        argv.add("org.apache.spark.deploy.SparkSubmit");
       }
 
-      argv.add("org.apache.spark.deploy.SparkSubmit");
+
       argv.add("--properties-file");
       argv.add(properties.getAbsolutePath());
       argv.add("--class");

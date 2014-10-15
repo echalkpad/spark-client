@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.zip.ZipEntry;
 import java.util.jar.JarOutputStream;
 
+import com.google.common.base.Strings;
 import com.google.common.io.ByteStreams;
 import org.apache.spark.FutureAction;
 import org.apache.spark.SparkFiles;
@@ -59,6 +60,11 @@ public class SparkClientTest {
       conf.put("spark.driver.extraClassPath", classpath);
       conf.put("spark.executor.extraClassPath", classpath);
     }
+
+    if (!Strings.isNullOrEmpty(System.getProperty("spark.home"))) {
+      conf.put("spark.home", System.getProperty("spark.home"));
+    }
+
     return conf;
   }
 
@@ -104,8 +110,8 @@ public class SparkClientTest {
     runTest(false, new TestFunction() {
       @Override
       public void call(SparkClient client) throws Exception {
-        JobHandle<String> handle = client.submit(new SimpleJob());
-        assertEquals("hello", handle.get(TIMEOUT, TimeUnit.SECONDS));
+        JobHandle<Long> handle = client.submit(new SparkJob());
+        assertEquals(Long.valueOf(5L), handle.get(TIMEOUT, TimeUnit.SECONDS));
       }
     });
   }
